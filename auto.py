@@ -1,5 +1,6 @@
 import time
 import json
+import sys
 import threading
 import logging
 from pynput.mouse import Button, Controller as mController
@@ -21,133 +22,115 @@ exit_key = KeyCode(char='e')
 # print(threading.enumerate())
 
 class Action(threading.Thread):
-    def __init__(self, delay, holding, duration = 0):
+    def __init__(self, delay, hold, duration, action):
         super(Action, self).__init__()
-        self.delay = delay
+        self.delay = float(delay)
         self.running = False
         self.program_running = True
         self.holding = holding
-        self.duration = duration
+        self.duration = float(duration)
+        self.action = action
 
-    def start_clicking(self):
+    def start_action(self):
         self.running = True
     
-    def stop_clicking(self):
+    def stop_action(self):
         self.running = False
 
     def exit(self):
-        self.stop_clicking()
+        self.stop_action()
         self.program_running = False
 
 class ClickMouse(Action):
     def __init__(self, button, *args, **kwargs):
-        self.button = button
+        # logger.error(f"Action is 'mouse' but no 'button' is found.")
+        # sys.exit(1)
+        # print(button)
+        self.button = {'right':Button.right, 'middle':Button.middle, 'left':Button.left}[button]
+        # print(self.button)
         super(ClickMouse, self).__init__(*args, **kwargs)
 
     def run(self):
-        # print(threading.current_thread())
+        print(f"{ClickMouse.__name__}: threading.current_thread()")
         while self.program_running:
-            timeout = time.time() + float(self.duration)
             while self.running:
                 # print(threading.current_thread())
                 mouse.click(self.button)
                 time.sleep(self.delay)
                 if not self.holding:
-                    self.stop_clicking()
-                if time.time() > timeout:
-                    self.exit()
+                    self.stop_action()
+                # if time.time() > timeout:
+                #     self.exit()
             time.sleep(0.1)
 
 class ClickKey(Action):            
     def __init__(self, key, *args, **kwargs):
-        self.key = key
+        self.key = KeyCode.from_char(key)
         super(ClickKey, self).__init__(*args, **kwargs)
 
     def run(self):
-        # print(threading.current_thread())
+        print(f"{ClickKey.__name__}: threading.current_thread()")
         while self.program_running:
-            timeout = time.time() + float(self.duration)
+            # timeout = time.time() + float(self.duration)
             while self.running:
                 # print(threading.current_thread())
                 keyboard.press(self.key)
                 time.sleep(self.delay)
                 if not self.holding:
-                    self.stop_clicking()
-                if time.time() > timeout:
-                    self.exit()
+                    self.stop_action()
+                # if time.time() > timeout:
+                    # self.exit()
             time.sleep(0.1)
+ 
+def create_action(content):
+    items = content.keys()
+    try:
+        assert all(i in items for i in ["action", "delay", "hold", "duration"])
+    except AssertionError:
+        logger.error(f"An act must contains ['action', 'delay', 'hold', 'duration'].")
+        sys.exit(1)
 
-# class PressKeyboard(threading.Thread):
-#     def __init__(self, key, duration):
-#         super(PressKeyboard, self).__init__()
-#         self.key = key
-#         self.duration = duration
-#         self.running = False
-#         self.program_running = True
-    
-#     def start_pressing(self):
-#         self.running = True
-
-#     def stop_pressing(self):
-#         self.running = False
-
-#     def exit(self):
-#         self.stop_pressing()
-#         self.program_running = False
-
-#     def run(self):
-#         # print(threading.current_thread())
-#         while self.program_running:
-#             while self.running:
-#                 # print(threading.current_thread())
-#                 keyboard.press(self.key)
-#                 time.sleep(self.duration)
-#             time.sleep(0.1)
-
-mouse = mController()
-keyboard = kController()
-click_thread = ClickMouse(delay, button, holding, 10)
-# click_thread.start()
+    if content["action"] == "mouse":
+        # Check the other args are numbers
+        return ClickMouse(**content)
+    elif content["action"] == "keyboard":
+        return ClickKey(**content)
+    else:
+        logger.error("Action must be 'button' or 'keyboard'")
+        sys.exit(1)
+    return None
 
 def on_press(key):
     if key == start_stop_key:
-        for act in actions:
-            act.start()
-            logger.info(f"Current thread: {threading.current_thread()}")
-            # click_thread.start()
-            if act.running:
-                act.stop_clicking()
+        print(f"On press: {threading.current_thread()}")
+        for act in content:
+            # print(f"On press for loop: {threading.current_thread()}")
+            action = create_action(content[act])
+            # print(action)
+            action.start()
+            timeout = time.time() + float(action.duration)
+            if action.running:
+                action.stop_action()
             else:
-                act.start_clicking()
+                action.start_action()
+            while time.time() < timeout:
+                time.sleep(0.01)
+            action.exit()
 
     elif key == exit_key:
-        # print(threading.current_thread())
-        for act in actions:
-            act.exit()
+        print(f"On press exit: {threading.current_thread()}")
+        # for act in content:
+            # act.exit()
         listener.stop()
- 
-def create_action(key, value):
-    if "mouse" in key:
-
-    elif "keyboard" in key:
-
-
 
 with open("auto.json", 'r') as f:
     content = json.load(f)
-    print(content.keys())
-actions = []    
-for idx, act in enumerate(content):
-    if "mouse" in act:
-        print(content[act])
-        actions.append(ClickMouse(*content[act]))
-    elif "keyboard" in act:
-        print(content[act])
-#         actions.append(PressKeyboard(*content[act]))    
 
+mouse = mController()
+keyboard = kController()
 
 with Listener(on_press=on_press) as listener:
-    # print(threading.current_thread())
+    print(threading.current_thread())
     listener.join()
-    # print(threading.current_thread())
+    print(threading.current_thread())
     
