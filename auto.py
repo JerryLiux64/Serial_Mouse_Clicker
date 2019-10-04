@@ -22,13 +22,13 @@ exit_key = KeyCode(char='e')
 # print(threading.enumerate())
 
 class Action(threading.Thread):
-    def __init__(self, delay, hold, duration, action):
+    def __init__(self, delay: float , hold: bool, duration: float, action):
         super(Action, self).__init__()
-        self.delay = float(delay)
+        self.delay = delay
         self.running = False
         self.program_running = True
         self.holding = holding
-        self.duration = float(duration)
+        self.duration = duration
         self.action = action
 
     def start_action(self):
@@ -42,12 +42,11 @@ class Action(threading.Thread):
         self.program_running = False
 
 class ClickMouse(Action):
-    def __init__(self, button, *args, **kwargs):
-        # logger.error(f"Action is 'mouse' but no 'button' is found.")
-        # sys.exit(1)
-        # print(button)
+    def __init__(self, button: str, *args, **kwargs):
+        if button not in {'right', 'middle', 'left'}:
+            raise ValueError("ClickMouse: button must be one of %r" % {'right', 'middle', 'left'})
         self.button = {'right':Button.right, 'middle':Button.middle, 'left':Button.left}[button]
-        # print(self.button)
+        logger.error(f"{self.__name__} on {self.button}.")
         super(ClickMouse, self).__init__(*args, **kwargs)
 
     def run(self):
@@ -64,7 +63,7 @@ class ClickMouse(Action):
             time.sleep(0.1)
 
 class ClickKey(Action):            
-    def __init__(self, key, *args, **kwargs):
+    def __init__(self, key: str, *args, **kwargs):
         self.key = KeyCode.from_char(key)
         super(ClickKey, self).__init__(*args, **kwargs)
 
@@ -102,25 +101,15 @@ def create_action(content):
 
 def on_press(key):
     if key == start_stop_key:
-        print(f"On press: {threading.current_thread()}")
-        for act in content:
-            # print(f"On press for loop: {threading.current_thread()}")
-            action = create_action(content[act])
-            # print(action)
-            action.start()
-            timeout = time.time() + float(action.duration)
-            if action.running:
-                action.stop_action()
-            else:
-                action.start_action()
-            while time.time() < timeout:
-                time.sleep(0.01)
-            action.exit()
+        # print(f"On press: {threading.current_thread()}")
+        if action.running:
+            action.stop_action()
+        else:
+            action.start_action()
 
     elif key == exit_key:
-        print(f"On press exit: {threading.current_thread()}")
-        # for act in content:
-            # act.exit()
+        # print(f"On press exit: {threading.current_thread()}")
+        action.exit()
         listener.stop()
 
 with open("auto.json", 'r') as f:
@@ -130,7 +119,7 @@ mouse = mController()
 keyboard = kController()
 
 with Listener(on_press=on_press) as listener:
-    print(threading.current_thread())
+    # print(threading.current_thread())
     listener.join()
-    print(threading.current_thread())
+    # print(threading.current_thread())
     
