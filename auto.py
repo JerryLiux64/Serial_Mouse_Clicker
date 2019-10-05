@@ -3,6 +3,7 @@ import json
 import sys
 import threading
 import logging
+# from abc import ABC, abstractmethod
 from datetime import datetime
 from pynput.mouse import Button, Controller as mController
 from pynput.keyboard import Listener, KeyCode, Key, Controller as kController
@@ -19,7 +20,7 @@ start_stop_key = KeyCode(char='s')
 exit_key = KeyCode(char='e')
 
 class Action(threading.Thread):
-    def __init__(self, delay: float , hold: bool, duration: float, action):
+    def __init__(self, delay: float , holding: bool, duration: float, action):
         super(Action, self).__init__()
         self.delay = float(delay)
         self.running = False
@@ -72,7 +73,6 @@ class ClickKey(Action):
         print(f"{ClickKey.__name__}: threading.current_thread()")
         while self.program_running:
             while self.running:
-                # print(threading.current_thread())
                 if self.timer == -1 or (datetime.now() - self.timer).total_seconds() > self.delay:
                     keyboard.press(self.key)
                     self.timer = datetime.now()
@@ -119,9 +119,8 @@ class ActControl(threading.Thread):
                     cur_action.stop_action()
                     self.actCount = (self.actCount + 1)%len(self.actions)
                     self.timer = -1
-                
             # time.sleep(0.1)
-
+                
 def create_action(content):
     items = content.keys()
     try:
@@ -142,14 +141,12 @@ def create_action(content):
 
 def on_press(key):
     if key == start_stop_key:
-        # print(f"On press: {threading.current_thread()}")
         if actControl.running:
             actControl.stop_action()
         else:
             actControl.start_action()
 
     elif key == exit_key:
-        # print(f"On press exit: {threading.current_thread()}")
         actControl.exit()
         listener.stop()
 
@@ -162,7 +159,5 @@ actControl = ActControl(content)
 actControl.start()
 
 with Listener(on_press=on_press) as listener:
-    # print(threading.current_thread())
     listener.join()
-    # print(threading.current_thread())
     
