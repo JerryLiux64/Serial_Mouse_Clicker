@@ -13,7 +13,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
+<!-- <div class="container">
     <div class="row">
         <div class="col">
             <div class="selectionAction">
@@ -52,23 +52,26 @@
                 </select>
             </form>
         </div>
-</div>
+</div> -->
 
-<div class="row">
+
+
+<div class="container">
+    <div class="row">
         <div class="col-sm-3">
             <button type="button" class="btn btn-info add-new mb-3"><i class="fa fa-plus"></i> Add New Action</button>
         </div>
-</div>
-
-<div class="container">
-        <table class="table table-striped">
+    </div>
+    <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>Action Number</th>
+                    <!-- <th>Action Number</th> -->
                     <th>Action</th>
-                    <th>Duration</th>
+                    <th>Action On</th>
+                    <th>Delay(s)</th>
                     <th>Holding</th>
-                    <th>Delay</th>
+                    <th>Duration(s)</th>
+                    <th>Delete Action</th>
                 </tr>
             </thead>
         </table>
@@ -102,6 +105,20 @@ $(document).ready(function(){
                     '</select>' +
                     '</form>' +
                     '<input style="display:none;" name="target" id="target-key" type="text" class="form-control" placeholder="Key to be press">' +
+                    '</td>' +
+                    '<td>' +
+                    '<input name="delay" id="delay" type="text" class="form-control" placeholder="Delay in seconds">' +
+                    '</td>' +
+                    '<td>' +
+                    '<form>' +
+                    '<select name="holding" id="holding" class="custom-select mb-3">' +
+                    '<option selected>No</option>' +
+                    '<option>Yes</option>' +
+                    '</select>' +
+                    '</form>' +
+                    '</td>' +
+                    '<td>' +
+                    '<input name="duration" id="duration" type="text" class="form-control" placeholder="Duration in seconds">' +
                     '</td>' +
                     '<td>' +
                     '<a class="delete" title="Delete" data-toggle="tooltip"><i class="material-icons">&#xE872;</i></a>' +
