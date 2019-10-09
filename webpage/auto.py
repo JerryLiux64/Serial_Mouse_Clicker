@@ -15,17 +15,17 @@ logger = logging.getLogger(__name__)
 
 delay = 1
 button = Button.left
-holding = True
+hold = True
 start_stop_key = KeyCode(char='s')
 exit_key = KeyCode(char='e')
 
 class Action(threading.Thread):
-    def __init__(self, delay: float , holding: bool, duration: float, action):
+    def __init__(self, delay: float , hold: bool, duration: float, action):
         super(Action, self).__init__()
         self.delay = float(delay)
         self.running = False
         self.program_running = True
-        self.holding = holding
+        self.hold = hold
         self.duration = float(duration)
         self.action = action
         self.timer = 0
@@ -59,7 +59,7 @@ class ClickMouse(Action):
                     logger.info(f"Click mouse on {self.button}")
                     mouse.click(self.button)
                     self.timer = datetime.now()
-                    if not self.holding:
+                    if not self.hold:
                         self.stop_action()
             # time.sleep(0.01)
 
@@ -76,7 +76,7 @@ class ClickKey(Action):
                 if self.timer == -1 or (datetime.now() - self.timer).total_seconds() > self.delay:
                     keyboard.press(self.key)
                     self.timer = datetime.now()
-                    if not self.holding:
+                    if not self.hold:
                         self.stop_action()
             # time.sleep(0.01)
  
