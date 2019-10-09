@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block header %}
+<div align="center">
+    <h5>{% block title %}
+    <div class="container">
+        <div class="jumbotron">
+            <h1>Mouse Clicker</h1>      
+            <p>This mouse clicker allows you to add actions and run those actions sequentially.</p>
+        </div>    
+    </div>
+    {% endblock %}</h5>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <div class="selectionAction">
+            <form>
+                <select name="actions" id="actions" class="custom-select mb-3">
+                    <option selected disabled>Select Actions</option>
+                    <option value="mouse">Click Mouse</option>
+                    <option value="key">Press Key</option>
+                </select>
+            </form>
+        </div>
+        </div>
+        <div class="col">
+            <form>
+                <select name="target" id="target-mouse" class="custom-select mb-3">
+                    <option selected disabled>Choose action on the left</option>
+                </select>
+            </form>
+            <input style="display:none;" name="target" id="target-key" type="text" class="form-control" placeholder="Key to be press">
+        </div>
+        <div class="col">
+            <form>
+                <select name="duration" id="duration" class="custom-select mb-3">
+                    <option selected disabled>Select Actions</option>
+                    <option value="mouse">Click Mouse</option>
+                    <option value="key">Press Key</option>
+                </select>
+            </form>
+        </div>
+        <div class="col">
+            <form>
+                <select name="holding" id="holding" class="custom-select mb-3">
+                    <option selected disabled>Select Actions</option>
+                    <option value="mouse">Click Mouse</option>
+                    <option value="key">Press Key</option>
+                </select>
+            </form>
+        </div>
+</div>
+
+<div class="row">
+        <div class="col-sm-3">
+            <button type="button" class="btn btn-info add-new mb-3"><i class="fa fa-plus"></i> Add New Action</button>
+        </div>
+</div>
+
+<div class="container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Action Number</th>
+                    <th>Action</th>
+                    <th>Duration</th>
+                    <th>Holding</th>
+                    <th>Delay</th>
+                </tr>
+            </thead>
+        </table>
+</div>
+</div>  
+{% endblock %}
+
+{% block script %}
+<script>
+$(document).ready(function(){
+    $('[data-toggle="tooltip"]').tooltip();
+    // Append table with add row form on add new button click
+    $(".add-new").click(function(){
+        //$(this).attr("disabled", "disabled");
+        var index = $("table tbody tr:last-child").index();
+        var row =   
+                    '<tr>' +     
+                    '<td class="ActionRow">' +
+                    '<form>' + 
+                    '<select name="actions" id="actions" class="custom-select mb-3">' +
+                    '<option selected disabled>Select Actions</option>' + 
+                    '<option value="mouse">Click Mouse</option>' +
+                    '<option value="key">Press Key</option>' +
+                    '</select>' +
+                    '</form>' +
+                    '</td>' +
+                    '<td>' +
+                    '<form>' +
+                    '<select name="target" id="target-mouse" class="custom-select mb-3">' +
+                    '<option selected disabled>Choose action on the left</option>' +
+                    '</select>' +
+                    '</form>' +
+                    '<input style="display:none;" name="target" id="target-key" type="text" class="form-control" placeholder="Key to be press">' +
+                    '</td>' +
+                    '<td>' +
+                    '<a class="delete" title="Delete" data-toggle="tooltip"><i class="material-icons">&#xE872;</i></a>' +
+                    '</td>' +
+                    '</tr>';
+        $("table").append(row);		
+    });
+
+    // Delete row on delete button click
+	$(document).on("click", ".delete", function(){
+        $(this).parents("tr").remove();
+	    $(".add-new").removeAttr("disabled");
+    });
+
+    $(document).on("change", "#actions", function(){
+        var $dropdown = $(this);
+        var key = $dropdown.val();
+        var $targetmouse = $(this).parents('tr').find("select[id='target-mouse']");
+        var $targetkey = $(this).parents('tr').find("input[id='target-key']");
+        //console.log($targetmouse)
+        //var $targetkey = $("#target-key");
+        console.log(key);
+        // var $targetmouse = $("#target-mouse");
+        switch(key) {
+            case "mouse":
+                var vals = ["Left-Click", "Right-Click"]
+                $targetkey.hide();
+                $targetmouse.show()
+                $targetmouse.empty();
+                $.each(vals, function(index, value){
+                    $targetmouse.append("<option>" + value + "</option>");
+                });
+                break;
+            case "key":
+                $targetmouse.hide();
+                $targetkey.show()
+                break;
+        }
+    });
+});
+</script>
+
+{% endblock %}

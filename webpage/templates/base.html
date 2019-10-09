@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <!--    Bootstrap 4 is designed to be responsive to mobile devices. Mobile-first styles are part of the core framework.
+            To ensure proper rendering and touch zooming, add the following <meta> tag inside the <head> element: -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--    The width=device-width part sets the width of the page to follow the screen-width of the device (which will vary depending on the device).
+            The initial-scale=1 part sets the initial zoom level when the page is first loaded by the browser. -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="icon" href="../static/img/pooh_icon.ico">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> -->
+</head>
+<body>
+    <section class="content">
+        <header>
+            {% block header %}{% endblock %}
+        </header>
+        <div class="err_msg" align="center">
+            {% for msg in get_flashed_messages() %}
+            <div class="flash">{{ msg }}</div>
+            {% endfor %}
+        </div>
+        {% block content %}{% endblock %}
+    </section>
+    {% block script %}{% endblock %}
+</body>
+</html>
