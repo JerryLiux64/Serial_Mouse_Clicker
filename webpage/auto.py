@@ -13,21 +13,15 @@ logging.basicConfig(level=logging.INFO,
 					datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
-delay = 1
-button = Button.left
-hold = True
-start_stop_key = KeyCode(char='s')
-exit_key = KeyCode(char='e')
-
 class Action(threading.Thread):
-    def __init__(self, delay: float , hold: bool, duration: float, action):
+    def __init__(self, delay: float , holding: bool, duration: float, *args, **kwargs):
         super(Action, self).__init__()
         self.delay = float(delay)
         self.running = False
         self.program_running = True
-        self.hold = hold
+        self.hold = holding
         self.duration = float(duration)
-        self.action = action
+        # self.action = action
         self.timer = 0
 
     def start_action(self):
@@ -44,10 +38,11 @@ class Action(threading.Thread):
         self.program_running = False
 
 class ClickMouse(Action):
-    def __init__(self, button: str, *args, **kwargs):
-        if button not in {'right', 'middle', 'left'}:
-            raise ValueError("ClickMouse: button must be one of %r" % {'right', 'middle', 'left'})
-        self.button = {'right':Button.right, 'middle':Button.middle, 'left':Button.left}[button]
+    def __init__(self, actionOn: str, mouse = "", *args, **kwargs):
+        if actionOn not in {'Left-Click', 'Middle', 'Right-Click'}:
+            raise ValueError("ClickMouse: button must be one of %r" % {'Left-Click', 'Middle', 'Right-Click'})
+        self.button = {'Right-Click':Button.right, 'Middle':Button.middle, 'Left-Click':Button.left}[actionOn]
+        self.mouse = mouse
         logger.info(f"{self.__class__.__name__} on {self.button}.")
         super(ClickMouse, self).__init__(*args, **kwargs)
 
@@ -57,15 +52,16 @@ class ClickMouse(Action):
             while self.running:
                 if self.timer == -1 or (datetime.now() - self.timer).total_seconds() > self.delay:
                     logger.info(f"Click mouse on {self.button}")
-                    mouse.click(self.button)
+                    self.mouse.click(self.button)
                     self.timer = datetime.now()
                     if not self.hold:
                         self.stop_action()
             # time.sleep(0.01)
 
 class ClickKey(Action):            
-    def __init__(self, key: str, *args, **kwargs):
-        self.key = KeyCode.from_char(key)
+    def __init__(self, actionOn: str, keyboard = "", *args, **kwargs):
+        self.key = KeyCode.from_char(actionOn)
+        self.keyboard = keyboard
         logger.info(f"{self.__class__.__name__} on {self.key}.")
         super(ClickKey, self).__init__(*args, **kwargs)
 
@@ -74,21 +70,21 @@ class ClickKey(Action):
         while self.program_running:
             while self.running:
                 if self.timer == -1 or (datetime.now() - self.timer).total_seconds() > self.delay:
-                    keyboard.press(self.key)
+                    self.keyboard.press(self.key)
                     self.timer = datetime.now()
                     if not self.hold:
                         self.stop_action()
             # time.sleep(0.01)
  
 class ActControl(threading.Thread):
-    def __init__(self, content):
+    def __init__(self, content = "", *args, **kwargs):
         super(ActControl, self).__init__()
         self.content = content
         self.running = False
         self.program_running = True
         self.actions = []
         for act in self.content:
-            action = create_action(self.content[act])
+            action = self.create_action(act, *args, **kwargs)
             action.start()
             self.actions.append(action)
          
@@ -120,44 +116,64 @@ class ActControl(threading.Thread):
                     self.actCount = (self.actCount + 1)%len(self.actions)
                     self.timer = -1
             # time.sleep(0.1)
-                
-def create_action(content):
-    items = content.keys()
-    try:
-        assert all(i in items for i in ["action", "delay", "hold", "duration"])
-    except AssertionError:
-        logger.error(f"An act must contains ['action', 'delay', 'hold', 'duration'].")
-        sys.exit(1)
 
-    if content["action"] == "mouse":
-        # Check the other args are numbers
-        return ClickMouse(**content)
-    elif content["action"] == "keyboard":
-        return ClickKey(**content)
-    else:
-        logger.error("Action must be 'button' or 'keyboard'")
-        sys.exit(1)
-    return None
+    def create_action(self, action, *args, **kwargs):
+        items = action.keys()
+        try:
+            assert all(i in items for i in ["action", "actionOn", "delay", "holding", "duration"])
+        except AssertionError:
+            logger.error(f'An act must contains ["action", "actionOn", "delay", "holding", "duration"].')
+            sys.exit(1)
 
-def on_press(key):
-    if key == start_stop_key:
-        if actControl.running:
-            actControl.stop_action()
+        if action["action"] == "mouse":
+            # Check the other args are numbers
+            return ClickMouse(button = action['actionOn'], *args, **action, **kwargs)
+        elif action["action"] == "key":
+            return ClickKey(key = action['actionOn'], *args, **action, **kwargs)
         else:
-            actControl.start_action()
+            logger.error("action must be 'button' or 'key'")
+            sys.exit(1)
+        return None
+                
 
-    elif key == exit_key:
-        actControl.exit()
-        listener.stop()
+class AutoClicker():
+    def __init__(self, content = ""):
+        self.content = content
+        self.start_stop_key = KeyCode(char='s')
+        self.exit_key = KeyCode(char='e')
+        pass
 
-with open("auto.json", 'r') as f:
-    content = json.load(f)
+    def on_press(self, key):
+        if key == self.start_stop_key:
+            if self.actControl.running:
+                self.actControl.stop_action()
+            else:
+                self.actControl.start_action()
 
-mouse = mController()
-keyboard = kController()
-actControl = ActControl(content)
-actControl.start()
+        elif key == self.exit_key:
+            self.actControl.exit()
+            self.listener.stop()
 
-with Listener(on_press=on_press) as listener:
-    listener.join()
+    def run_from_keys(self):
+        self.mouse = mController()
+        self.keyboard = kController()
+        self.actControl = ActControl(self.content, keyboard = self.keyboard, mouse = self.mouse)
+        self.actControl.start()
+
+        with Listener(on_press=self.on_press) as self.listener:
+            self.listener.join()
     
+    def run(self):
+        self.mouse = mController()
+        self.keyboard = kController()
+        self.actControl = ActControl(self.content, keyboard = self.keyboard, mouse = self.mouse)
+        self.actControl.start()
+        if self.actControl.running:
+            self.actControl.stop_action()
+        else:
+            self.actControl.start_action()
+
+    def stop(self):
+        self.actControl.exit()
+        self.listener.stop()
+        
