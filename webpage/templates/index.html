@@ -55,7 +55,7 @@
 </div> -->
 <div id="message">
     <div style="padding: 5px;">
-        <div id="saved-msg" class="alert alert-info alert-dismissible" style="display: none">
+        <div id="saved-msg" class="alert alert-success alert-dismissible" style="display: none">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
             <strong>Success!</strong> Actions saved. Ready to start.
         </div>
@@ -68,18 +68,19 @@
     
 <div class="container-fluid">
     <div class="row">
-        <div class="col-sm-8">
-            <button type="button" class="btn btn-info add-new mb-3" data-toggle="tooltip" title="Add new action"><i class="fa fa-plus"></i> Add New Action</button>
-            <button type="button" class="btn btn-success save-act mb-3" data-toggle="tooltip" title="Save all actions"><i class="fa fa-plus"></i> Save Actions</button>
-            <button type="button" class="btn btn-primary run-act mb-3" data-toggle="tooltip" title="Run actions" disabled><i class="fa fa-plus"></i> Run Actions</button>
-            <button type="button" class="btn btn-danger stop-act mb-3" data-toggle="tooltip" title="Stop running" disabled><i class="fa fa-plus"></i> Stop Running</button>
+        <div class="col-sm-8 col-centered">
+            <button type="button" class="btn btn-info add-new mb-3" data-toggle="tooltip" title="Add new action" id="btn-new-act"><i class="fa fa-plus"></i> Add New Action</button>
+            <button type="button" class="btn btn-success save-act mb-3" data-toggle="tooltip" title="Save all actions" id="btn-save-act"><i class="fa fa-plus"></i> Save Actions</button>
+            <button type="button" class="btn btn-primary run-act mb-3" data-toggle="tooltip" title="Run actions" id="btn-run-act" disabled><i class="fa fa-plus"></i> Run Actions</button>
+            <button type="button" class="btn btn-danger stop-act mb-3" data-toggle="tooltip" title="Stop running" id="btn-stop-run" disabled><i class="fa fa-plus"></i> Stop Running</button>
         </div>
     </div>
     <div class="row">
-    <table class="table table-striped" id = "actionTable">
+    <div class="col-md-8 col-centered">
+    <form action="www.google.com" method = "POST" id="actionform">
+        <table class="table table-striped" id = "actionTable">
             <thead>
                 <tr>
-                    <!-- <th>Action Number</th> -->
                     <th>Action</th>
                     <th>Action On</th>
                     <th>Delay(s)</th>
@@ -89,6 +90,8 @@
                 </tr>
             </thead>
         </table>
+    </form>
+    </div>
     </div>
 </div>
 </div>  
@@ -97,7 +100,9 @@
 {% block script %}
 <script>
 
-var delayInMilliseconds = 3000;
+function getSelectedText(elt) {
+    return elt.options[elt.selectedIndex].text;
+}
 
 $(document).ready(function(){
     $('[data-toggle="tooltip"]').tooltip();
@@ -117,25 +122,24 @@ $(document).ready(function(){
                 '</td>' +
                 '<td>' +
                 '<form>' +
-                '<select name="target" id="target-mouse" class="form-control mb-3">' +
+                '<select name="target" id="target" class="form-control mb-3">' +
                 '<option selected disabled>Choose action on the left</option>' +
                 '</select>' +
                 '</form>' +
-                '<input style="display:none;" name="target" id="target-key" type="text" class="form-control" placeholder="Key to be press">' +
                 '</td>' +
                 '<td>' +
-                '<input name="delay" id="delay" type="text" class="form-control" placeholder="Delay in seconds">' +
+                '<input name="delay" id="delay" class="form-control" placeholder="Delay in seconds" type="number" step="0.01">' +
                 '</td>' +
                 '<td>' +
                 '<form>' +
                 '<select name="holding" id="holding" class="form-control mb-3">' +
-                '<option selected>No</option>' +
-                '<option>Yes</option>' +
+                '<option selected>Yes</option>' +
+                '<option>No</option>' +
                 '</select>' +
                 '</form>' +
                 '</td>' +
                 '<td>' +
-                '<input name="duration" id="duration" type="text" class="form-control" placeholder="Duration in seconds">' +
+                '<input name="duration" id="duration" class="form-control" placeholder="Duration in seconds" type="number" step="0.01">' +
                 '</td>' +
                 '<td>' +
                 '<a class="delete" title="Delete" data-toggle="tooltip"><i class="material-icons">&#xE872;</i></a>' +
@@ -144,6 +148,7 @@ $(document).ready(function(){
         $("table").append(row);	
     });
 
+    // Send form data to backend
     $(".save-act").click(function(){
         var empty = false;
         var selectinput = $("#actionTable").find("select");
@@ -167,15 +172,32 @@ $(document).ready(function(){
             $("#error-fill-msg").show().delay(1300).fadeOut();
             setTimeout(function() {
                 $("#message").css("z-index", -1);
-            }, 1300);
+            }, 1500);
+            $("#btn-run-act").attr("disabled", true);
             //$("#error-fill-msg").addClass("in").delay(1000).fadeOut();
         }
         else{
+            var TableData = new Array();
+    
+            $('#actionTable tr').each(function(row, tr){
+                var $act = $(tr).find('#actions');
+                TableData[row]={
+                    "Action" : $(tr).find('#actions').val()
+                    , "ActionOn" :$(tr).find('#target').val()
+                    , "Delay" : $(tr).find('#delay').val()
+                    , "Holding" : $(tr).find('#holding').val()
+                    , "Duration" : $(tr).find('#duration').val()
+                }
+            }); 
+            TableData.shift(); // first row is the table header - so remove
+            console.log(TableData)
+
             $("#message").css("z-index", 999);
             $("#saved-msg").show().delay(1300).fadeOut();
             setTimeout(function() {
                 $("#message").css("z-index", -1);
-            }, 1300);
+            }, 1500);
+            $("#btn-run-act").attr("disabled", false);
             //$("#saved-msg").addClass("in").delay(1000).fadeOut();
         };
         
@@ -185,28 +207,43 @@ $(document).ready(function(){
     // Delete row on delete button click
 	$(document).on("click", ".delete", function(){
         $(this).parents("tr").remove();
-	    $(".add-new").removeAttr("disabled");
+	    // $(".add-new").removeAttr("disabled");
     });
 
     $(document).on("change", "#actions", function(){
         var $dropdown = $(this);
         var key = $dropdown.val();
-        var $targetmouse = $(this).parents('tr').find("select[id='target-mouse']");
-        var $targetkey = $(this).parents('tr').find("input[id='target-key']");
         console.log(key);
         switch(key) {
             case "mouse":
                 var vals = ["Left-Click", "Right-Click"]
-                //$targetkey.hide();
-                //$targetmouse.show();
-                //$targetmouse.empty();
+                var $target = $(this).parents('tr').find("[id='target']").get(0);
+                if($target.nodeName !== "SELECT"){
+                    console.log("Target is not SELECT. Replace target object.")
+                    var $select = document.createElement("select");
+                    var $parent = $(this).parents('tr:first').get(0);
+                    $select.setAttribute("id", "target");
+                    $select.setAttribute("class", "form-control mb-3");
+                    $parent.childNodes[1].childNodes[0].replaceChild($select, $parent.childNodes[1].childNodes[0].childNodes[0]);
+                }
+                var $target = $(this).parents('tr').find("select[id='target']");
                 $.each(vals, function(index, value){
-                    $targetmouse.append("<option>" + value + "</option>");
+                    $target.append("<option>" + value + "</option>");
                 });
+                
                 break;
             case "key":
-                $targetmouse.hide();
-                $targetkey.show();
+                var $target = $(this).parents('tr').find("[id='target']").get(0);
+                if($target.nodeName !== "INPUT"){
+                    console.log("Target is not INPUT. Replace target object.")
+                    var $input = document.createElement("input");
+                    var $parent = $(this).parents('tr:first').get(0);
+                    $input.setAttribute("id", "target");
+                    $input.setAttribute("type", "text");
+                    $input.setAttribute("class", "form-control");
+                    $input.setAttribute("placeholder", "Key to be pressed");
+                    $parent.childNodes[1].childNodes[0].replaceChild($input, $parent.childNodes[1].childNodes[0].childNodes[0]);
+                }
                 break;
         }
     });
@@ -216,7 +253,7 @@ $(document).ready(function(){
     });
 
     $(document).on("change", "input", function(){
-        console.log($(this).val())
+        //console.log($(this).val())
         if($(this).val().length !== 0){
             $(this).removeClass("error");
         }
