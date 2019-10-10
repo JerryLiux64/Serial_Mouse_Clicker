@@ -14,12 +14,12 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 class Action(threading.Thread):
-    def __init__(self, delay: float , holding: bool, duration: float, *args, **kwargs):
+    def __init__(self, delay: float , holding: str, duration: float, *args, **kwargs):
         super(Action, self).__init__()
         self.delay = float(delay)
         self.running = False
         self.program_running = True
-        self.hold = holding
+        self.hold = {"Yes":True, "No":False}[holding]
         self.duration = float(duration)
         # self.action = action
         self.timer = 0
@@ -55,6 +55,7 @@ class ClickMouse(Action):
                     self.mouse.click(self.button)
                     self.timer = datetime.now()
                     if not self.hold:
+                        logger.info("Hoding is 'No'. Click only once per round.")
                         self.stop_action()
             # time.sleep(0.01)
 
@@ -73,6 +74,7 @@ class ClickKey(Action):
                     self.keyboard.press(self.key)
                     self.timer = datetime.now()
                     if not self.hold:
+                        logger.info("Hoding is 'No'. Press only once per round.")
                         self.stop_action()
             # time.sleep(0.01)
  
@@ -105,6 +107,9 @@ class ActControl(threading.Thread):
         self.program_running = False
 
     def run(self):
+        if not self.actions:
+            logger.info("No action to run. Quit.")
+            self.exit()
         while self.program_running:
             while self.running:
                 cur_action = self.actions[self.actCount]
@@ -141,7 +146,6 @@ class AutoClicker():
         self.content = content
         self.start_stop_key = KeyCode(char='s')
         self.exit_key = KeyCode(char='e')
-        pass
 
     def on_press(self, key):
         if key == self.start_stop_key:
@@ -175,5 +179,11 @@ class AutoClicker():
 
     def stop(self):
         self.actControl.exit()
-        self.listener.stop()
+        if hasattr(self, "listener"):
+            self.listener.stop()
+
+    def serialize(self):
+        return {
+            'autoclicker':"abc",
+        }
         
