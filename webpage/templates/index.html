@@ -71,8 +71,8 @@
         <div class="col-sm-8 col-centered">
             <button type="button" class="btn btn-info add-new mb-3" data-toggle="tooltip" title="Add new action" id="btn-new-act"><i class="fa fa-plus"></i> Add New Action</button>
             <button type="button" class="btn btn-success save-act mb-3" data-toggle="tooltip" title="Save all actions" id="btn-save-act"><i class="fa fa-plus"></i> Save Actions</button>
-            <button type="button" class="btn btn-primary run-act mb-3" data-toggle="tooltip" title="Run actions" id="btn-run-act" disabled><i class="fa fa-plus"></i> Run Actions</button>
-            <button type="button" class="btn btn-danger stop-act mb-3" data-toggle="tooltip" title="Stop running" id="btn-stop-run" disabled><i class="fa fa-plus"></i> Stop Running</button>
+            <a href="{{ url_for('actions.run_action') }}" class="btn btn-primary run-act mb-3 disabled" data-toggle="tooltip" title="Run actions" id="btn-run-act" role="button">Run Actions</a>
+            <a href="{{ url_for('actions.stop_running') }}" class="btn btn-danger stop-act mb-3 disabled" data-toggle="tooltip" title="Stop running" id="btn-stop-run" role="button">Run Actions</a>
         </div>
     </div>
     <div class="row">
@@ -100,12 +100,27 @@
 {% block script %}
 <script>
 
-function getSelectedText(elt) {
-    return elt.options[elt.selectedIndex].text;
+function storeTable()
+{
+    var TableData = new Array();
+
+    $('#actionTable tr').each(function(row, tr){
+        var $act = $(tr).find('#actions');
+        TableData[row]={
+            "action" : $(tr).find('#actions').val()
+            , "actionOn" :$(tr).find('#target').val()
+            , "delay" : $(tr).find('#delay').val()
+            , "holding" : $(tr).find('#holding').val()
+            , "duration" : $(tr).find('#duration').val()
+        }
+    }); 
+    TableData.shift(); // first row is the table header - so remove
+    console.log(TableData);
+    return TableData;
 }
 
 $(document).ready(function(){
-    $('[data-toggle="tooltip"]').tooltip();
+    //$('[data-toggle="tooltip"]').tooltip();
     // Append table with add row form on add new button click
     $(".add-new").click(function(){
         var index = $("table tbody tr:last-child").index();
@@ -173,35 +188,40 @@ $(document).ready(function(){
             setTimeout(function() {
                 $("#message").css("z-index", -1);
             }, 1500);
-            $("#btn-run-act").attr("disabled", true);
+            $("#btn-run-act").addClass("disabled");
             //$("#error-fill-msg").addClass("in").delay(1000).fadeOut();
         }
         else{
-            var TableData = new Array();
-    
-            $('#actionTable tr').each(function(row, tr){
-                var $act = $(tr).find('#actions');
-                TableData[row]={
-                    "Action" : $(tr).find('#actions').val()
-                    , "ActionOn" :$(tr).find('#target').val()
-                    , "Delay" : $(tr).find('#delay').val()
-                    , "Holding" : $(tr).find('#holding').val()
-                    , "Duration" : $(tr).find('#duration').val()
+            var TableData = storeTable();
+            TableData = $.toJSON(TableData);
+            console.log(TableData);
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('actions.getconfig')}}",
+                data: "tabledata=" + TableData,
+                success: function(){
+                    $("#message").css("z-index", 999);
+                    $("#saved-msg").show().delay(1300).fadeOut();
+                    setTimeout(function() {
+                        $("#message").css("z-index", -1);
+                    }, 1500);
+                    $("#btn-run-act").removeClass("disabled");
                 }
-            }); 
-            TableData.shift(); // first row is the table header - so remove
-            console.log(TableData)
-
-            $("#message").css("z-index", 999);
-            $("#saved-msg").show().delay(1300).fadeOut();
-            setTimeout(function() {
-                $("#message").css("z-index", -1);
-            }, 1500);
-            $("#btn-run-act").attr("disabled", false);
+            });            
             //$("#saved-msg").addClass("in").delay(1000).fadeOut();
         };
         
         
+    });
+
+    $("#btn-run-act").click(function(){
+        $(this).addClass("disabled");
+        $("#btn-stop-run").removeClass("disabled");
+    });
+
+    $("#btn-stop-run").click(function(){
+        $(this).addClass("disabled");
+        $("#btn-run-act").removeClass("disabled");
     });
         
     // Delete row on delete button click
