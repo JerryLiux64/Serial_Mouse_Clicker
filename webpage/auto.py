@@ -14,19 +14,21 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 class Action(threading.Thread):
-    def __init__(self, delay: float , holding: str, duration: float, *args, **kwargs):
+    def __init__(self, runtime: float , holding: str, duration: float, breaktime = 0, *args, **kwargs):
         super(Action, self).__init__()
-        self.delay = float(delay)
+        self.runtime = float(runtime)
         self.running = False
         self.program_running = True
         self.hold = {"Yes":True, "No":False}[holding]
         self.duration = float(duration)
         # self.action = action
+        self.breaktime = float(breaktime)
         self.timer = 0
 
     def start_action(self):
         logger.info(f"Start {self.__class__.__name__}.")
-        self.timer = -1
+        self.timer = datetime.now()
+        self.first_round = True
         self.running = True
     
     def stop_action(self):
@@ -50,13 +52,29 @@ class ClickMouse(Action):
         print(f"{ClickMouse.__class__}: threading.current_thread()")
         while self.program_running:
             while self.running:
-                if self.timer == -1 or (datetime.now() - self.timer).total_seconds() > self.delay:
-                    logger.info(f"Click mouse on {self.button}")
+                # if self.timer == -1 or (datetime.now() - self.timer).total_seconds() > self.runtime:
+                #     logger.info(f"Click mouse on {self.button}")
+                #     self.mouse.click(self.button)
+                #     self.timer = datetime.now()
+                #     if not self.hold:
+                #         logger.info("Hoding is 'No'. Click only once per round.")
+                #         self.stop_action()
+                
+                cur_time = (datetime.now() - self.timer).total_seconds()
+                if self.first_round:
+                    # logger.info(f"Click mouse on {self.button}")
                     self.mouse.click(self.button)
+                    self.first_round = False
+                elif cur_time < self.runtime:
+                    if self.hold:
+                        # logger.info(f"Click mouse on {self.button}")
+                        self.mouse.click(self.button)
+                elif cur_time < self.runtime + self.breaktime:
+                    pass
+                else:
                     self.timer = datetime.now()
-                    if not self.hold:
-                        logger.info("Hoding is 'No'. Click only once per round.")
-                        self.stop_action()
+                    self.first_round = True
+                
             # time.sleep(0.01)
 
 class ClickKey(Action):            
@@ -70,14 +88,25 @@ class ClickKey(Action):
         print(f"{ClickKey.__name__}: threading.current_thread()")
         while self.program_running:
             while self.running:
-                if self.timer == -1 or (datetime.now() - self.timer).total_seconds() > self.delay:
-                    self.keyboard.press(self.key)
-                    self.timer = datetime.now()
-                    if not self.hold:
-                        logger.info("Hoding is 'No'. Press only once per round.")
-                        self.stop_action()
+                # if self.timer == -1 or (datetime.now() - self.timer).total_seconds() > self.runtime:
+                #     self.keyboard.press(self.key)
+                #     self.timer = datetime.now()
+                #     if not self.hold:
+                #         logger.info("Hoding is 'No'. Press only once per round.")
+                #         self.stop_action()
             # time.sleep(0.01)
- 
+                cur_time = (datetime.now() - self.timer).total_seconds()
+                if self.first_round:
+                    self.keyboard.press(self.key)
+                    self.first_round = False
+                elif cur_time < self.runtime:
+                    if self.hold:
+                        self.keyboard.press(self.key)
+                elif cur_time < self.runtime + self.breaktime:
+                    pass
+                else:
+                    self.timer = datetime.now()
+                    self.first_round = True
 class ActControl(threading.Thread):
     def __init__(self, content = "", *args, **kwargs):
         super(ActControl, self).__init__()
@@ -125,9 +154,9 @@ class ActControl(threading.Thread):
     def create_action(self, action, *args, **kwargs):
         items = action.keys()
         try:
-            assert all(i in items for i in ["action", "actionOn", "delay", "holding", "duration"])
+            assert all(i in items for i in ["action", "actionOn", "runtime", "holding", "breaktime", "duration"])
         except AssertionError:
-            logger.error(f'An act must contains ["action", "actionOn", "delay", "holding", "duration"].')
+            logger.error(f'An act must contains ["action", "actionOn", "runtime", "holding", "breaktime", "duration"].')
             sys.exit(1)
 
         if action["action"] == "mouse":
@@ -187,3 +216,10 @@ class AutoClicker():
             'autoclicker':"abc",
         }
         
+
+if __name__ == "__main__":
+    with open("C:\\Jerry doc\\Jerry_prac\\python\\auto\\instance\\config.json", 'r') as f:
+        content = json.load(f)
+    autoclicker = AutoClicker(content)
+    autoclicker.run_from_keys()
+  
