@@ -29,6 +29,7 @@ class Action(threading.Thread):
         logger.info(f"Start {self.__class__.__name__}.")
         self.timer = datetime.now()
         self.first_round = True
+        self.holding = False
         self.running = True
     
     def stop_action(self):
@@ -49,32 +50,35 @@ class ClickMouse(Action):
         super(ClickMouse, self).__init__(*args, **kwargs)
 
     def run(self):
-        print(f"{ClickMouse.__class__}: threading.current_thread()")
+        # print(f"{ClickMouse.__class__}: threading.current_thread()")
         while self.program_running:
             while self.running:
-                # if self.timer == -1 or (datetime.now() - self.timer).total_seconds() > self.runtime:
-                #     logger.info(f"Click mouse on {self.button}")
-                #     self.mouse.click(self.button)
-                #     self.timer = datetime.now()
-                #     if not self.hold:
-                #         logger.info("Hoding is 'No'. Click only once per round.")
-                #         self.stop_action()
-                
                 cur_time = (datetime.now() - self.timer).total_seconds()
                 if self.first_round:
-                    # logger.info(f"Click mouse on {self.button}")
-                    self.mouse.click(self.button)
+                    if self.hold:
+                        logger.info(f"Press mouse on {self.button}")
+                        self.mouse.press(self.button)
+                        self.holding = True
+                    else:
+                        logger.info(f"Click mouse on {self.button}")
+                        self.mouse.click(self.button)
                     self.first_round = False
                 elif cur_time < self.runtime:
-                    if self.hold:
-                        # logger.info(f"Click mouse on {self.button}")
-                        self.mouse.click(self.button)
-                elif cur_time < self.runtime + self.breaktime:
                     pass
+                elif cur_time < self.runtime + self.breaktime:
+                    # release hoding after self.runtime
+                    if self.holding:
+                        logger.info(f"Release mouse on {self.button}")
+                        self.mouse.release(self.button)
+                        self.holding = False
                 else:
-                    self.timer = datetime.now()
+                    # release hoding in case self.breaktime = 0
+                    if self.holding:
+                        logger.info(f"Release mouse on {self.button}")
+                        self.mouse.release(self.button)
+                        self.holding = False
                     self.first_round = True
-                
+                    self.timer = datetime.now()
             # time.sleep(0.01)
 
 class ClickKey(Action):            
@@ -85,16 +89,9 @@ class ClickKey(Action):
         super(ClickKey, self).__init__(*args, **kwargs)
 
     def run(self):
-        print(f"{ClickKey.__name__}: threading.current_thread()")
+        # print(f"{ClickKey.__name__}: threading.current_thread()")
         while self.program_running:
             while self.running:
-                # if self.timer == -1 or (datetime.now() - self.timer).total_seconds() > self.runtime:
-                #     self.keyboard.press(self.key)
-                #     self.timer = datetime.now()
-                #     if not self.hold:
-                #         logger.info("Hoding is 'No'. Press only once per round.")
-                #         self.stop_action()
-            # time.sleep(0.01)
                 cur_time = (datetime.now() - self.timer).total_seconds()
                 if self.first_round:
                     self.keyboard.press(self.key)
@@ -107,6 +104,9 @@ class ClickKey(Action):
                 else:
                     self.timer = datetime.now()
                     self.first_round = True
+            
+            # time.sleep(0.01)
+
 class ActControl(threading.Thread):
     def __init__(self, content = "", *args, **kwargs):
         super(ActControl, self).__init__()
