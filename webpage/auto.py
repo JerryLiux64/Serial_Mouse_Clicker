@@ -14,13 +14,13 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 class Action(threading.Thread):
-    def __init__(self, runtime: float , holding: str, duration: float, breaktime = 0, *args, **kwargs):
+    def __init__(self, duration: float , holding: str, actIteration: int, breaktime = 0, *args, **kwargs):
         super(Action, self).__init__()
-        self.runtime = float(runtime)
+        self.duration = float(duration)
         self.running = False
         self.program_running = True
         self.hold = {"Yes":True, "No":False}[holding]
-        self.duration = float(duration)
+        self.actIteration = int(actIteration)
         # self.action = action
         self.breaktime = float(breaktime)
         self.timer = 0
@@ -28,7 +28,8 @@ class Action(threading.Thread):
     def start_action(self):
         logger.info(f"Start {self.__class__.__name__}.")
         self.timer = datetime.now()
-        self.first_round = True
+        self.ready_to_act = True
+        self.iterCount = 0
         self.holding = False
         self.running = True
     
@@ -46,15 +47,15 @@ class ClickMouse(Action):
             raise ValueError("ClickMouse: button must be one of %r" % {'Left-Click', 'Middle', 'Right-Click'})
         self.button = {'Right-Click':Button.right, 'Middle':Button.middle, 'Left-Click':Button.left}[actionOn]
         self.mouse = mouse
-        logger.info(f"{self.__class__.__name__} on {self.button}.")
         super(ClickMouse, self).__init__(*args, **kwargs)
+        logger.info(f"{self.__class__.__name__} on \'{actionOn}\', {f'hold for {self.duration}s ' if self.hold else ''}then take a break of {self.breaktime}s. Repeat for {self.actIteration} times.")
 
     def run(self):
         # print(f"{ClickMouse.__class__}: threading.current_thread()")
         while self.program_running:
             while self.running:
                 cur_time = (datetime.now() - self.timer).total_seconds()
-                if self.first_round:
+                if self.ready_to_act:
                     if self.hold:
                         logger.info(f"Press mouse on {self.button}")
                         self.mouse.press(self.button)
@@ -62,11 +63,11 @@ class ClickMouse(Action):
                     else:
                         logger.info(f"Click mouse on {self.button}")
                         self.mouse.click(self.button)
-                    self.first_round = False
-                elif cur_time < self.runtime:
+                    self.ready_to_act = False
+                elif cur_time < self.duration:
                     pass
-                elif cur_time < self.runtime + self.breaktime:
-                    # release hoding after self.runtime
+                elif cur_time < self.duration + self.breaktime:
+                    # release hoding after self.duration
                     if self.holding:
                         logger.info(f"Release mouse on {self.button}")
                         self.mouse.release(self.button)
@@ -77,33 +78,57 @@ class ClickMouse(Action):
                         logger.info(f"Release mouse on {self.button}")
                         self.mouse.release(self.button)
                         self.holding = False
-                    self.first_round = True
-                    self.timer = datetime.now()
+                    self.iterCount = self.iterCount + 1
+                    if self.iterCount >= self.actIteration:
+                        self.stop_action()
+                    else:
+                        self.ready_to_act = True
+                        self.timer = datetime.now()
             # time.sleep(0.01)
 
 class ClickKey(Action):            
     def __init__(self, actionOn: str, keyboard = "", *args, **kwargs):
         self.key = KeyCode.from_char(actionOn)
         self.keyboard = keyboard
-        logger.info(f"{self.__class__.__name__} on {self.key}.")
         super(ClickKey, self).__init__(*args, **kwargs)
+        logger.info(f"{self.__class__.__name__} on \'{actionOn}\', {f'hold for {self.duration}s ' if self.hold else ''}then take a break of {self.breaktime}s. Repeat for {self.actIteration} times.")
+
 
     def run(self):
         # print(f"{ClickKey.__name__}: threading.current_thread()")
         while self.program_running:
             while self.running:
                 cur_time = (datetime.now() - self.timer).total_seconds()
-                if self.first_round:
-                    self.keyboard.press(self.key)
-                    self.first_round = False
-                elif cur_time < self.runtime:
+                if self.ready_to_act:
                     if self.hold:
+                        logger.info(f"Press key on {self.key}")
                         self.keyboard.press(self.key)
-                elif cur_time < self.runtime + self.breaktime:
+                        self.holding = True
+                    else:
+                        logger.info(f"Click keyboard on {self.key}")
+                        self.keyboard.press(self.key)
+                        self.keyboard.release(self.key)
+                    self.ready_to_act = False
+                elif cur_time < self.duration:
                     pass
+                elif cur_time < self.duration + self.breaktime:
+                    # release hoding after self.duration
+                    if self.holding:
+                        logger.info(f"Release keyboard on {self.key}")
+                        self.keyboard.release(self.key)
+                        self.holding = False
                 else:
-                    self.timer = datetime.now()
-                    self.first_round = True
+                    # release hoding in case self.breaktime = 0
+                    if self.holding:
+                        logger.info(f"Release keyboard on {self.key}")
+                        self.keyboard.release(self.key)
+                        self.holding = False
+                    self.iterCount = self.iterCount + 1
+                    if self.iterCount >= self.actIteration:
+                        self.stop_action()
+                    else:
+                        self.ready_to_act = True
+                        self.timer = datetime.now()
             
             # time.sleep(0.01)
 
@@ -122,7 +147,7 @@ class ActControl(threading.Thread):
         logger.info(self.actions)
 
     def start_action(self):
-        self.timer = -1
+        self.nextAction = True 
         self.actCount = 0
         self.running = True
     
@@ -142,21 +167,21 @@ class ActControl(threading.Thread):
         while self.program_running:
             while self.running:
                 cur_action = self.actions[self.actCount]
-                if self.timer == -1: 
-                    self.timer = datetime.now()
+                if self.nextAction: 
+                    self.nextAction = False
                     cur_action.start_action()
-                if (datetime.now() - self.timer).total_seconds() > cur_action.duration:
-                    cur_action.stop_action()
+
+                elif not cur_action.running and cur_action.iterCount == cur_action.actIteration:
                     self.actCount = (self.actCount + 1)%len(self.actions)
-                    self.timer = -1
+                    self.nextAction = True
             # time.sleep(0.1)
 
     def create_action(self, action, *args, **kwargs):
         items = action.keys()
         try:
-            assert all(i in items for i in ["action", "actionOn", "runtime", "holding", "breaktime", "duration"])
+            assert all(i in items for i in ["action", "actionOn", "duration", "holding", "breaktime", "actIteration"])
         except AssertionError:
-            logger.error(f'An act must contains ["action", "actionOn", "runtime", "holding", "breaktime", "duration"].')
+            logger.error(f'An act must contains ["action", "actionOn", "duration", "holding", "breaktime", "actIteration"].')
             sys.exit(1)
 
         if action["action"] == "mouse":
