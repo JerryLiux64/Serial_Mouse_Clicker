@@ -1,14 +1,12 @@
 {% extends 'base.html' %}
 {% block header %}
 <div align="center">
-    <h5>{% block title %}
     <div class="container">
         <div class="jumbotron">
-            <h1>Mouse Clicker</h1>      
+            <h1>{% block title %}Serial Mouse Clicker{% endblock %}</h1>      
             <p>This mouse clicker allows you to add actions and run those actions sequentially.</p>
         </div>    
     </div>
-    {% endblock %}</h5>
 </div>
 {% endblock %}
 
@@ -36,7 +34,7 @@
         </div>
         <div class="col">
             <form>
-                <select name="duration" id="duration" class="custom-select mb-3">
+                <select name="actIteration" id="actIteration" class="custom-select mb-3">
                     <option selected disabled>Select Actions</option>
                     <option value="mouse">Click Mouse</option>
                     <option value="key">Press Key</option>
@@ -83,10 +81,10 @@
                 <tr>
                     <th>Action</th>
                     <th>Action On</th>
-                    <th>runtime(s)</th>
                     <th>Holding</th>
+                    <th>Hold for(s)</th>
                     <th>Breaktime</th>
-                    <th>Duration(s)</th>
+                    <th>Repeat(times)</th>
                     <th>Delete Action</th>
                 </tr>
             </thead>
@@ -110,10 +108,10 @@ function storeTable()
         TableData[row]={
             "action" : $(tr).find('#actions').val()
             , "actionOn" :$(tr).find('#target').val()
-            , "runtime" : $(tr).find('#runtime').val()
             , "holding" : $(tr).find('#holding').val()
-            , "breaktime" : $(tr).find('#breaktime').val()
             , "duration" : $(tr).find('#duration').val()
+            , "breaktime" : $(tr).find('#breaktime').val()
+            , "actIteration" : $(tr).find('#actIteration').val()
         }
     }); 
     TableData.shift(); // first row is the table header - so remove
@@ -128,42 +126,42 @@ $(document).ready(function(){
         var index = $("table tbody tr:last-child").index();
         var row =   
                 '<tr>' +     
-                '<td class="ActionRow">' +
-                '<form>' + 
-                '<select name="actions" id="actions" class="form-control mb-3">' +
-                '<option selected disabled>Select Actions</option>' + 
-                '<option value="mouse">Click Mouse</option>' +
-                '<option value="key">Press Key</option>' +
-                '</select>' +
-                '</form>' +
-                '</td>' +
-                '<td>' +
-                '<form>' +
-                '<select name="target" id="target" class="form-control mb-3">' +
-                '<option selected disabled>Choose action on the left</option>' +
-                '</select>' +
-                '</form>' +
-                '</td>' +
-                '<td>' +
-                '<input name="runtime" id="runtime" class="form-control" placeholder="Runtime in seconds" type="number" step="0.01">' +
-                '</td>' +
-                '<td>' +
-                '<form>' +
-                '<select name="holding" id="holding" class="form-control mb-3">' +
-                '<option selected>Yes</option>' +
-                '<option>No</option>' +
-                '</select>' +
-                '</form>' +
-                '</td>' +
-                '<td>' +
-                '<input name="breaktime" id="breaktime" class="form-control" placeholder="Breaktime in seconds" type="number" step="0.01" value="0" >' +
-                '</td>' +
-                '<td>' +
-                '<input name="duration" id="duration" class="form-control" placeholder="Duration in seconds" type="number" step="0.01">' +
-                '</td>' +
-                '<td>' +
-                '<a class="delete" title="Delete" data-toggle="tooltip"><i class="material-icons">&#xE872;</i></a>' +
-                '</td>' +
+                    '<td class="ActionRow">' +
+                        '<form>' + 
+                            '<select name="actions" id="actions" class="form-control mb-3">' +
+                                '<option selected disabled>Select Actions</option>' + 
+                                '<option value="mouse">Click Mouse</option>' +
+                                '<option value="key">Press Key</option>' +
+                            '</select>' +
+                        '</form>' +
+                    '</td>' +
+                    '<td>' +
+                        '<form>' +
+                            '<select name="target" id="target" class="form-control mb-3">' +
+                                '<option selected disabled>Choose action on the left</option>' +
+                            '</select>' +
+                    '</form>' +
+                    '</td>' +
+                    '<td>' +
+                        '<form>' +
+                            '<select name="holding" id="holding" class="form-control mb-3">' +
+                                '<option selected>Yes</option>' +
+                                '<option>No</option>' +
+                            '</select>' +
+                        '</form>' +
+                    '</td>' +
+                    '<td>' +
+                        '<input name="duration" id="duration" class="form-control" placeholder="Duration in seconds" type="number" step="0.01">' +
+                    '</td>' +
+                    '<td>' +
+                        '<input name="breaktime" id="breaktime" class="form-control" placeholder="Breaktime in seconds" type="number" step="0.01" value="0" >' +
+                    '</td>' +
+                    '<td>' +
+                        '<input name="actIteration" id="actIteration" class="form-control" placeholder="Repeat times" type="number" step="1">' +
+                    '</td>' +
+                    '<td>' +
+                        '<a class="delete" title="Delete" data-toggle="tooltip"><i class="material-icons">&#xE872;</i></a>' +
+                    '</td>' +
                 '</tr>';
         $("table").append(row);	
     });
@@ -281,6 +279,18 @@ $(document).ready(function(){
         //console.log($(this).val())
         if($(this).val().length !== 0){
             $(this).removeClass("error");
+        }
+    });
+
+    $(document).on("change", "#holding", function(){
+        var hold = $(this).val();
+        if(hold == "No"){
+            $("#duration").attr("value", "0");
+            $("#duration").attr("disabled", true);
+        }
+        else{
+            $("#duration").removeAttr("value");
+            $("#duration").attr("disabled", false);
         }
     });
 });
