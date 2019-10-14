@@ -14,13 +14,13 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 class Action(threading.Thread):
-    def __init__(self, duration: float , holding: str, actIteration: int, breaktime = 0, *args, **kwargs):
+    def __init__(self, duration: float , holding: str, repeat: int, breaktime = 0, *args, **kwargs):
         super(Action, self).__init__()
         self.duration = float(duration)
         self.running = False
         self.program_running = True
         self.hold = {"Yes":True, "No":False}[holding]
-        self.actIteration = int(actIteration)
+        self.repeat = int(repeat)
         # self.action = action
         self.breaktime = float(breaktime)
         self.timer = 0
@@ -47,8 +47,8 @@ class ClickMouse(Action):
             raise ValueError("ClickMouse: button must be one of %r" % {'Left-Click', 'Middle', 'Right-Click'})
         self.button = {'Right-Click':Button.right, 'Middle':Button.middle, 'Left-Click':Button.left}[actionOn]
         self.mouse = mouse
-        super(ClickMouse, self).__init__(*args, **kwargs)
-        logger.info(f"{self.__class__.__name__} on \'{actionOn}\', {f'hold for {self.duration}s ' if self.hold else ''}then take a break of {self.breaktime}s. Repeat for {self.actIteration} times.")
+        super().__init__(*args, **kwargs)
+        logger.info(f"{self.__class__.__name__} on \'{actionOn}\', {f'hold for {self.duration}s ' if self.hold else ''}then take a break of {self.breaktime}s. Repeat for {self.repeat} times.")
 
     def run(self):
         # print(f"{ClickMouse.__class__}: threading.current_thread()")
@@ -79,7 +79,34 @@ class ClickMouse(Action):
                         self.mouse.release(self.button)
                         self.holding = False
                     self.iterCount = self.iterCount + 1
-                    if self.iterCount >= self.actIteration:
+                    if self.iterCount >= self.repeat:
+                        self.stop_action()
+                    else:
+                        self.ready_to_act = True
+                        self.timer = datetime.now()
+            # time.sleep(0.01)
+
+class ScrollMouse(Action):
+    def __init__(self, actionOn: int, mouse = "", *args, **kwargs):
+        self.mouse = mouse
+        self.scroll_range = int(actionOn)
+        super().__init__(*args, **kwargs)
+        logger.info(f"{self.__class__.__name__} \'{actionOn}\', then take a break of {self.breaktime}s. Repeat for {self.repeat} times.")
+
+    def run(self):
+        # print(f"{ClickMouse.__class__}: threading.current_thread()")
+        while self.program_running:
+            while self.running:
+                cur_time = (datetime.now() - self.timer).total_seconds()
+                if self.ready_to_act:
+                    logger.info(f"Scroll mouse {self.scroll_range}")
+                    self.mouse.scroll(0, self.scroll_range)
+                    self.ready_to_act = False
+                elif cur_time < self.duration + self.breaktime:
+                    pass
+                else:
+                    self.iterCount = self.iterCount + 1
+                    if self.iterCount >= self.repeat:
                         self.stop_action()
                     else:
                         self.ready_to_act = True
@@ -90,8 +117,8 @@ class ClickKey(Action):
     def __init__(self, actionOn: str, keyboard = "", *args, **kwargs):
         self.key = KeyCode.from_char(actionOn)
         self.keyboard = keyboard
-        super(ClickKey, self).__init__(*args, **kwargs)
-        logger.info(f"{self.__class__.__name__} on \'{actionOn}\', {f'hold for {self.duration}s ' if self.hold else ''}then take a break of {self.breaktime}s. Repeat for {self.actIteration} times.")
+        super().__init__(*args, **kwargs)
+        logger.info(f"{self.__class__.__name__} on \'{actionOn}\', {f'hold for {self.duration}s ' if self.hold else ''}then take a break of {self.breaktime}s. Repeat for {self.repeat} times.")
 
 
     def run(self):
@@ -124,7 +151,7 @@ class ClickKey(Action):
                         self.keyboard.release(self.key)
                         self.holding = False
                     self.iterCount = self.iterCount + 1
-                    if self.iterCount >= self.actIteration:
+                    if self.iterCount >= self.repeat:
                         self.stop_action()
                     else:
                         self.ready_to_act = True
@@ -171,7 +198,7 @@ class ActControl(threading.Thread):
                     self.nextAction = False
                     cur_action.start_action()
 
-                elif not cur_action.running and cur_action.iterCount == cur_action.actIteration:
+                elif not cur_action.running and cur_action.iterCount == cur_action.repeat:
                     self.actCount = (self.actCount + 1)%len(self.actions)
                     self.nextAction = True
             # time.sleep(0.1)
@@ -179,16 +206,21 @@ class ActControl(threading.Thread):
     def create_action(self, action, *args, **kwargs):
         items = action.keys()
         try:
-            assert all(i in items for i in ["action", "actionOn", "duration", "holding", "breaktime", "actIteration"])
+            assert all(i in items for i in ["action", "actionOn", "duration", "holding", "breaktime", "repeat"])
         except AssertionError:
-            logger.error(f'An act must contains ["action", "actionOn", "duration", "holding", "breaktime", "actIteration"].')
+            logger.error(f'An act must contains ["action", "actionOn", "duration", "holding", "breaktime", "repeat"].')
             sys.exit(1)
 
         if action["action"] == "mouse":
             # Check the other args are numbers
-            return ClickMouse(button = action['actionOn'], *args, **action, **kwargs)
+            # return ClickMouse(button = action['actionOn'], *args, **action, **kwargs)
+            return ClickMouse(*args, **action, **kwargs)
+        elif action["action"] == "mouse_scroll":
+            return ScrollMouse(*args, **action, **kwargs)
+            # return ScrollMouse(key = action['actionOn'], *args, **action, **kwargs)
         elif action["action"] == "key":
-            return ClickKey(key = action['actionOn'], *args, **action, **kwargs)
+            # return ClickKey(key = action['actionOn'], *args, **action, **kwargs)
+            return ClickKey(*args, **action, **kwargs)
         else:
             logger.error("action must be 'button' or 'key'")
             sys.exit(1)
