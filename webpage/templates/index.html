@@ -34,7 +34,7 @@
         </div>
         <div class="col">
             <form>
-                <select name="actIteration" id="actIteration" class="custom-select mb-3">
+                <select name="repeat" id="repeat" class="custom-select mb-3">
                     <option selected disabled>Select Actions</option>
                     <option value="mouse">Click Mouse</option>
                     <option value="key">Press Key</option>
@@ -99,6 +99,30 @@
 {% block script %}
 <script>
 
+function disable_duration(dom){
+    var $duration = dom.parents('tr:first').find("input[id='duration']");
+    $duration.val("0");
+    $duration.attr("disabled", true);
+}
+
+function enable_duration(dom){
+    var $duration = dom.parents('tr:first').find("input[id='duration']");
+    $duration.val("");
+    $duration.attr("disabled", false);
+}
+
+function disable_holding(dom){
+    var $hold = dom.parents('tr:first').find("select[id='holding']");
+    $hold.val("No");
+    $hold.attr("disabled", true);
+}
+
+function enable_holding(dom){
+    var $hold = dom.parents('tr:first').find("select[id='holding']");
+    $hold.val("Yes");
+    $hold.attr("disabled", false);
+}
+
 function storeTable()
 {
     var TableData = new Array();
@@ -111,7 +135,7 @@ function storeTable()
             , "holding" : $(tr).find('#holding').val()
             , "duration" : $(tr).find('#duration').val()
             , "breaktime" : $(tr).find('#breaktime').val()
-            , "actIteration" : $(tr).find('#actIteration').val()
+            , "repeat" : $(tr).find('#repeat').val()
         }
     }); 
     TableData.shift(); // first row is the table header - so remove
@@ -131,6 +155,7 @@ $(document).ready(function(){
                             '<select name="actions" id="actions" class="form-control mb-3">' +
                                 '<option selected disabled>Select Actions</option>' + 
                                 '<option value="mouse">Click Mouse</option>' +
+                                '<option value="mouse_scroll">Scroll Mouse</option>' +
                                 '<option value="key">Press Key</option>' +
                             '</select>' +
                         '</form>' +
@@ -145,8 +170,8 @@ $(document).ready(function(){
                     '<td>' +
                         '<form>' +
                             '<select name="holding" id="holding" class="form-control mb-3">' +
-                                '<option selected>Yes</option>' +
-                                '<option>No</option>' +
+                                '<option value="Yes" selected>Yes</option>' +
+                                '<option value="No">No</option>' +
                             '</select>' +
                         '</form>' +
                     '</td>' +
@@ -157,7 +182,7 @@ $(document).ready(function(){
                         '<input name="breaktime" id="breaktime" class="form-control" placeholder="Breaktime in seconds" type="number" step="0.01" value="0" >' +
                     '</td>' +
                     '<td>' +
-                        '<input name="actIteration" id="actIteration" class="form-control" placeholder="Repeat times" type="number" step="1">' +
+                        '<input name="repeat" id="repeat" class="form-control" placeholder="Repeat times" type="number" step="1">' +
                     '</td>' +
                     '<td>' +
                         '<a class="delete" title="Delete" data-toggle="tooltip"><i class="material-icons">&#xE872;</i></a>' +
@@ -253,8 +278,30 @@ $(document).ready(function(){
                 $.each(vals, function(index, value){
                     $target.append("<option>" + value + "</option>");
                 });
-                
+                enable_holding($(this));
+                enable_duration($(this));
                 break;
+
+            case "mouse_scroll":
+                var $target = $(this).parents('tr').find("[id='target']").get(0);
+                //var $hold = $(this).parents('tr:first').find("option[value='No']");
+                //var $hold_no = $hold.find("option[value='No']");
+                // var $this_dur = $(this).parents('tr:first').find("input[id='duration']");
+                if($target.nodeName !== "INPUT"){
+                    console.log("Target is not INPUT. Replace target object.")
+                    var $input = document.createElement("input");
+                    var $parent = $(this).parents('tr:first').get(0);
+                    $input.setAttribute("id", "target");
+                    $input.setAttribute("type", "number");
+                    $input.setAttribute("class", "form-control");
+                    $input.setAttribute("placeholder", "Scrolling range");
+                    $parent.childNodes[1].childNodes[0].replaceChild($input, $parent.childNodes[1].childNodes[0].childNodes[0]);
+                }
+                // $hold_no.prop('selected', true);
+                disable_holding($(this));
+                disable_duration($(this));
+                break;
+
             case "key":
                 var $target = $(this).parents('tr').find("[id='target']").get(0);
                 if($target.nodeName !== "INPUT"){
@@ -267,6 +314,8 @@ $(document).ready(function(){
                     $input.setAttribute("placeholder", "Key to be pressed");
                     $parent.childNodes[1].childNodes[0].replaceChild($input, $parent.childNodes[1].childNodes[0].childNodes[0]);
                 }
+                enable_holding($(this));
+                enable_duration($(this));
                 break;
         }
     });
@@ -283,14 +332,12 @@ $(document).ready(function(){
     });
 
     $(document).on("change", "#holding", function(){
-        var hold = $(this).val();
-        if(hold == "No"){
-            $("#duration").attr("value", "0");
-            $("#duration").attr("disabled", true);
+        var this_val = $(this).val();
+        if(this_val == "No"){
+            disable_duration($(this));
         }
         else{
-            $("#duration").removeAttr("value");
-            $("#duration").attr("disabled", false);
+            enable_duration($(this));
         }
     });
 });
