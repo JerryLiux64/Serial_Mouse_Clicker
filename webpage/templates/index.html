@@ -176,13 +176,13 @@ $(document).ready(function(){
                         '</form>' +
                     '</td>' +
                     '<td>' +
-                        '<input name="duration" id="duration" class="form-control" placeholder="Duration in seconds" type="number" step="0.01">' +
+                        '<input name="duration" id="duration" class="form-control" placeholder="Duration in seconds" type="number" step="0.1" min="0.3">' +
                     '</td>' +
                     '<td>' +
-                        '<input name="breaktime" id="breaktime" class="form-control" placeholder="Breaktime in seconds" type="number" step="0.01" value="0" >' +
+                        '<input name="breaktime" id="breaktime" class="form-control" placeholder="Breaktime in seconds" type="number" step="0.01" value="0" min="0" >' +
                     '</td>' +
                     '<td>' +
-                        '<input name="repeat" id="repeat" class="form-control" placeholder="Repeat times" type="number" step="1">' +
+                        '<input name="repeat" id="repeat" class="form-control" placeholder="Repeat times" type="number" step="1" min="0">' +
                     '</td>' +
                     '<td>' +
                         '<a class="delete" title="Delete" data-toggle="tooltip"><i class="material-icons">&#xE872;</i></a>' +
@@ -244,12 +244,14 @@ $(document).ready(function(){
 
     $("#btn-run-act").click(function(){
         $(this).addClass("disabled");
+        $("#btn-save-act").addClass("disabled");
         $("#btn-stop-run").removeClass("disabled");
     });
 
     $("#btn-stop-run").click(function(){
         $(this).addClass("disabled");
         $("#btn-run-act").removeClass("disabled");
+        $("#btn-save-act").removeClass("disabled");
     });
         
     // Delete row on delete button click
@@ -297,6 +299,10 @@ $(document).ready(function(){
                     $input.setAttribute("placeholder", "Scrolling range");
                     $parent.childNodes[1].childNodes[0].replaceChild($input, $parent.childNodes[1].childNodes[0].childNodes[0]);
                 }
+                else{
+                    $target.setAttribute("type", "number");
+                    $target.setAttribute("placeholder", "Scrolling range");
+                }
                 // $hold_no.prop('selected', true);
                 disable_holding($(this));
                 disable_duration($(this));
@@ -312,7 +318,13 @@ $(document).ready(function(){
                     $input.setAttribute("type", "text");
                     $input.setAttribute("class", "form-control");
                     $input.setAttribute("placeholder", "Key to be pressed");
+                    $input.setAttribute("maxlength", 1);
                     $parent.childNodes[1].childNodes[0].replaceChild($input, $parent.childNodes[1].childNodes[0].childNodes[0]);
+                }
+                else{
+                    $target.setAttribute("type", "text");
+                    $target.setAttribute("placeholder", "Key to be pressed");
+                    $target.setAttribute("maxlength", 1);
                 }
                 enable_holding($(this));
                 enable_duration($(this));
