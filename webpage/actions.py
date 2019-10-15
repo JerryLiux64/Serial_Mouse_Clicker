@@ -1,7 +1,7 @@
 import json
 from flask import Blueprint, flash, g, redirect, url_for, redirect, render_template, request, current_app, jsonify, session
 from werkzeug.exceptions import abort
-from .auto import AutoClicker
+from auto import AutoClicker
 
 bp = Blueprint('actions', __name__)
 actionClicker = []
