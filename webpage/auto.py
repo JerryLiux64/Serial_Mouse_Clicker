@@ -84,7 +84,7 @@ class ClickMouse(Action):
                     else:
                         self.ready_to_act = True
                         self.timer = datetime.now()
-            # time.sleep(0.01)
+            time.sleep(0.01)
 
 class ScrollMouse(Action):
     def __init__(self, actionOn: int, mouse = "", *args, **kwargs):
@@ -111,7 +111,7 @@ class ScrollMouse(Action):
                     else:
                         self.ready_to_act = True
                         self.timer = datetime.now()
-            # time.sleep(0.01)
+            time.sleep(0.01)
 
 class ClickKey(Action):            
     def __init__(self, actionOn: str, keyboard = "", *args, **kwargs):
@@ -156,8 +156,7 @@ class ClickKey(Action):
                     else:
                         self.ready_to_act = True
                         self.timer = datetime.now()
-            
-            # time.sleep(0.01)
+            time.sleep(0.01)
 
 class ActControl(threading.Thread):
     def __init__(self, content = "", *args, **kwargs):
