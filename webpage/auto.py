@@ -84,7 +84,7 @@ class ClickMouse(Action):
                     else:
                         self.ready_to_act = True
                         self.timer = datetime.now()
-            time.sleep(0.01)
+            time.sleep(0.3)
 
 class ScrollMouse(Action):
     def __init__(self, actionOn: int, mouse = "", *args, **kwargs):
@@ -111,7 +111,7 @@ class ScrollMouse(Action):
                     else:
                         self.ready_to_act = True
                         self.timer = datetime.now()
-            time.sleep(0.01)
+            time.sleep(0.3)
 
 class ClickKey(Action):            
     def __init__(self, actionOn: str, keyboard = "", *args, **kwargs):
@@ -156,7 +156,7 @@ class ClickKey(Action):
                     else:
                         self.ready_to_act = True
                         self.timer = datetime.now()
-            time.sleep(0.01)
+            time.sleep(0.3)
 
 class ActControl(threading.Thread):
     def __init__(self, content = "", *args, **kwargs):
@@ -200,7 +200,7 @@ class ActControl(threading.Thread):
                 elif not cur_action.running and cur_action.iterCount == cur_action.repeat:
                     self.actCount = (self.actCount + 1)%len(self.actions)
                     self.nextAction = True
-            # time.sleep(0.1)
+            time.sleep(0.3)
 
     def create_action(self, action, *args, **kwargs):
         items = action.keys()
